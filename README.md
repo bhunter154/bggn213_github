@@ -1,2 +1,2 @@
 # bggn213_github
-Bioinformatics class work at UCSD (bggn213)
+Bioinformatics class work at UC San Diego (bggn213)
