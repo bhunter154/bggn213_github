@@ -1,0 +1,47 @@
+This is the nano text editor - as simple as it comes
+
+git:	 version control
+pwd:	 print working directory (Where am I?)
+cd:	 Change directory
+ls:	 listing shit
+mkdir:	 make a new folder
+rm: 	 remove files (delete) [you should try rm -rf /*]
+nano: 	 text editor
+cp:	 copy a file
+mv: 	 rename or move a file/folder
+less:	 to see the contents of a text file
+head: 	 look at the first lines of a file
+grep: 	 pattern match
+top:	 display the top running processes
+
+Process Control
+^C	 control-C to kill a running job
+^Z	 put to sleep a running job
+top:	 display the top running processes
+kill:	 kills the process (with ID) 
+
+Absolute path: Where stuff is spelled out from the root of the file systems, e.g.
+/Users/brad/Desktop/class15/unix_notes.txt
+
+Relative path: Where stuff is relative to where you are currently (current working directory)
+
+Useful shortcuts: "~" and ".."
+
+Open an SSH client.
+
+Locate your private key file. The key used to launch this instance is brad_aws_key.pem
+
+Run this command, if necessary, to ensure your key is not publicly viewable.
+chmod 400 "brad_aws_key.pem"
+
+Connect to your instance using its Public DNS:
+ec2-54-202-16-195.us-west-2.compute.amazonaws.com
+
+Example:
+
+ssh -i "brad_aws_key.pem" ubuntu@ec2-54-202-16-195.us-west-2.compute.amazonaws.com
+
+- SCP
+scp -i "brad_aws_key.pem" ubuntu@ec2-54-202-16-195.us-west-2.compute.amazonaws.com:/path/to/file .
+
+scp -i KEYFILE USERNAME@REMOTE_MACHINE:remoteFILE LOCALFILE

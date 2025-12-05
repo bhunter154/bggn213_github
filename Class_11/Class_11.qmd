@@ -1,0 +1,101 @@
+---
+title: "Class_11"
+author: "Brad Hunter (PID: A69038089)"
+format: pdf
+---
+
+## Background
+
+We saw last class that the PDB has 209,886 entries (Oct/Nov 2025). UniprotKB (i.e. protein sequence database) has 199,579,901 entries.
+
+So the PDB has only `r round(209886/199579901 *100,2)`% coverage of the main sequence database.
+
+Enter AlphaFold data base (AFDB) < http://alphafold.ebi.ac.uk > that attempts to provide computed models for all sequences in UniProt.
+
+"AlphaFold DB provides open access to over 200 million protein structure predictions to accelerate scientific research."
+
+## AlphaFold
+
+AlphaFold has 3 main outputs
+
+- The predicted coordinates (PDB file)
+- A local quality score called pLDDT (one for each amino-acid)
+- A second quality score called PAE, Predicted Aligned Error (for each pair of amino-acid)
+
+We can run AlphaFold ourselves if we are not happy with AFDB (i.e. no coverage or poor model).
+
+
+
+## Interpreting/analyzing AF results in R
+
+```{r}
+results_dir <- "Brads_HIVPR_dimer_23119/"
+```
+
+```{r}
+# File names for all PDB models
+pdb_files <- list.files(path=results_dir,
+                        pattern="*.pdb",
+                        full.names = TRUE)
+
+# Print our PDB file names
+basename(pdb_files)
+```
+
+```{r}
+library(bio3d)
+library(bio3dview)
+# Read all data from Models 
+#  and superpose/fit coords
+pdbs <- pdbaln(pdb_files, fit=TRUE, exefile="msa")
+```
+
+```{r}
+pdbs
+```
+RMSD is a standard measure of structural distance between coordinate sets. We can use the `rmsd()` function to calculate the RMSD between all pairs models.
+
+
+```{r}
+rd <- rmsd(pdbs, fit=T)
+range(rd)
+```
+
+Drawing a heatmat
+```{r}
+library(pheatmap)
+
+colnames(rd) <- paste0("m",1:5)
+rownames(rd) <- paste0("m",1:5)
+pheatmap(rd)
+```
+
+Now lets plot the pLDDT values across all models.
+
+```{r}
+pdb <- read.pdb("1hsg")
+```
+
+```{r}
+plotb3(pdbs$b[1,], typ="l", lwd=2, sse=pdb)
+points(pdbs$b[2,], typ="l", col="red")
+points(pdbs$b[3,], typ="l", col="blue")
+points(pdbs$b[4,], typ="l", col="darkgreen")
+points(pdbs$b[5,], typ="l", col="orange")
+abline(v=100, col="gray")
+```
+
+```{r}
+core <- core.find(pdbs)
+core.inds <- print(core, vol=0.5)
+```
+
+```{r}
+xyz <- pdbfit(pdbs, core.inds, outpath="corefit_structures")
+
+rf <- rmsf(xyz)
+
+plotb3(rf, sse=pdb)
+abline(v=100, col="gray", ylab="RMSF")
+```
+
