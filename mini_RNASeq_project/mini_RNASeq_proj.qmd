@@ -1,0 +1,189 @@
+---
+title: "mini RNASeq Project"
+author: "Brad Hunter (PID A69038089)"
+format: pdf
+toc: true
+---
+
+## Background
+
+The data for hands-on session comes from GEO entry: GSE37704, which is associated with the following publication:
+
+Trapnell C, Hendrickson DG, Sauvageau M, Goff L et al. "Differential analysis of gene regulation at transcript resolution with RNA-seq". Nat Biotechnol 2013 Jan;31(1):46-53. PMID: 23222703
+
+The authors report on differential analysis of lung fibroblasts in response to loss of the developmental transcription factor HOXA1. Their results and others indicate that HOXA1 is required for lung fibroblast and HeLa cell cycle progression. In particular their analysis show that "loss of HOXA1 results in significant expression level changes in thousands of individual transcripts, along with isoform switching events in key regulators of the cell cycle". For our session we have used their Sailfish gene-level estimated counts and hence are restricted to protein-coding genes only.
+
+
+Loading libraries
+```{r}
+library(DESeq2)
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+library(pathview)
+library(gage)
+library(gageData)
+library(ggplot2)
+
+```
+
+## Data Import
+```{r}
+metaFile <- "GSE37704_metadata.csv"
+countFile <- "GSE37704_featurecounts.csv"
+
+metadata = read.csv(metaFile)
+counts = read.csv(countFile, row.names=1)
+```
+
+Fix to remove that first "length" column of `counts`
+```{r}
+counts <- counts[,-1]
+```
+
+Also lets remove low count genes
+
+```{r}
+tot.counts <- rowSums(counts)
+```
+Let's remove low count genes
+
+```{r}
+threshold = 0
+del.inds <- tot.counts > threshold
+counts <- counts[del.inds,]
+```
+
+
+Check correspondance of `metadata` and `counts` (columns in counts matches rows of metadata)
+
+```{r}
+test_cols<-!all(colnames(counts)==metadata$id)
+```
+
+```{r}
+if(test_cols){
+  message("Your metadata and counts do not match")
+  break
+}
+```
+
+
+## Setup for DESeq
+
+```{r}
+dds = DESeqDataSetFromMatrix(countData=counts,
+                             colData=metadata,
+                             design=~condition)
+```
+
+## Run DESeq
+```{r}
+dds <- DESeq(dds)
+```
+
+## Get results
+
+```{r}
+res <- results(dds)
+```
+
+## Add annotation
+
+```{r}
+columns(org.Hs.eg.db)
+
+res$symbol = mapIds(org.Hs.eg.db,
+                    keys=row.names(res), 
+                    keytype="ENSEMBL",
+                    column="SYMBOL",
+                    multiVals="first")
+
+res$entrez = mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="ENTREZID",
+                    multiVals="first")
+
+
+head(res, 10)
+```
+
+## Visualize results
+
+```{r}
+my_cols <- rep("grey", nrow(res))
+my_cols[abs(res$log2FoldChange) > 2] <- "blue"
+my_cols[res$padj >= 0.05] <- "grey"
+
+ggplot(res) +
+  aes(log2FoldChange, -log(padj)) +
+  geom_point(col = my_cols) +
+  geom_vline(xintercept = c(-2,2), col="red") +
+  geom_hline(yintercept = -log(0.05), col="red") +
+  labs(x = "Log2 Fold Change",
+y = "-log(P-adjusted Scores)",
+title = "A Pretty Volcano Plot") +
+  theme_classic()
+```
+
+## Pathway analysis
+
+```{r}
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+```
+
+For **gage** we want a named vector of importance
+```{r}
+foldchanges <- res$log2FoldChange
+names(foldchanges) <- res$entrez
+head(foldchanges)
+```
+
+```{r}
+keggres <- gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+```
+!["Cool pathway picture"](hsa04110.pathview.png)
+
+## GO Analysis
+
+Let's try GO analysis and compare to KEGG analysis
+
+```{r}
+data(go.sets.hs)
+data(go.subs.hs)
+
+# Focus on Biological Process subset of GO
+gobpsets <- go.sets.hs[go.subs.hs$BP]
+
+gobpres <- gage(foldchanges, gsets=gobpsets)
+```
+
+```{r}
+head(gobpres$less)
+```
+
+## Reactome
+
+Some people really like Reactome online (webpage) rather than the R package of the same name.
+
+To use the website viewer we want to upload our set of gene symbols for the genes we want to focus on.
+
+```{r}
+sig_genes <- res[res$padj <= 0.05 & !is.na(res$padj), "symbol"]
+write.table(sig_genes, file="significant_genes.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+```
+
+
+## Save results
+
+```{r}
+write.csv(res, file="myresults.csv")
+save(res, file="my_results.RData")
+```
+

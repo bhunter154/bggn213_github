@@ -1,0 +1,62 @@
+# Genomics Homework
+Brad Hunter (PID: A69038089)
+
+## Population Scale Analysis
+
+One sample is obviously not enough to know what is happening in a
+population. You are interested in assessing genetic differences on a
+population scale. So, you processed about ~230 samples and did the
+normalization on a genome level. Now, you want to find whether there is
+any association of the 4 asthma-associated SNPs (rs8067378…) on ORMDL3
+expression.
+
+``` r
+data <- read.table("rs8067378_ENSG00000172057.6.txt")
+
+x <- boxplot(exp ~ geno, data = data)
+```
+
+``` r
+stats_table <- data.frame(
+  Genotype = x$names,
+  Sample_Size = x$n,
+  Median = round(x$stats[3, ], 2)
+) 
+```
+
+> Q13: Read this file into R and determine the sample size for each
+> genotype and their corresponding median expression levels for each of
+> these genotypes.
+
+``` r
+flextable::flextable(stats_table)
+```
+
+![](Genomics_HW_files/figure-commonmark/unnamed-chunk-2-1.png)
+
+> Q14: Generate a boxplot with a box per genotype, what could you infer
+> from the relative expression value between A/A and G/G displayed in
+> this plot? Does the SNP effect the expression of ORMDL3?
+
+``` r
+library(ggplot2)
+```
+
+    Warning: package 'ggplot2' was built under R version 4.5.2
+
+``` r
+ggplot(data, aes(x = geno, y = exp, fill = geno)) +
+  geom_boxplot() +
+  guides(fill = "none", color = "none") +
+  labs(
+    title = "ORMDL3 Expression by Genotype",
+    x = "Genotype",
+    y = "Expression Level") +
+  theme_minimal()
+```
+
+![](Genomics_HW_files/figure-commonmark/unnamed-chunk-3-1.png)
+
+It does seem that SNP effects the expression of ORMDL3, the A\|A
+genotype has a higher median experession level compared to the G\|G
+genotype.
